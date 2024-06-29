@@ -1,0 +1,25 @@
+[package]
+name = "kneed"
+version = "0.1.2"
+edition = "2021"
+repository = "https://github.com/vihu/kneed"
+authors = ["Rahul Garg"]
+description = "Pure rust implementation of Knee-point detection"
+license = "BSD-3-Clause"
+readme = "README.md"
+keywords = ["knee", "kneedle", "knee-point"]
+homepage = "https://github.com/vihu/kneed"
+
+[dependencies]
+anyhow = "1"
+ndarray = "0"
+ndarray-linalg = { version = "0", features = ["openblas-system"] }
+ndarray-stats = "0"
+ndarray-interp = "0"
+rand = "0"
+rand_distr = "0"
+polyfit-rs = "0"
+thiserror = "1"
+
+[dev-dependencies]
+approx = "0"
