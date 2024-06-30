@@ -48,6 +48,10 @@ impl KneeLocatorParams {
 
 #[derive(Debug)]
 pub struct KneeLocator {
+    pub knee: Option<f64>,
+    pub knee_y: Option<f64>,
+    pub norm_knee: Option<f64>,
+    pub norm_knee_y: Option<f64>,
     x: Array1<f64>,
     y: Array1<f64>,
     curve: ValidCurve,
@@ -71,10 +75,6 @@ pub struct KneeLocator {
     x_difference_minima: Array1<f64>,
     y_difference_minima: Array1<f64>,
     tmx: Array1<f64>,
-    knee: Option<f64>,
-    norm_knee: Option<f64>,
-    knee_y: Option<f64>,
-    norm_knee_y: Option<f64>,
 }
 
 impl KneeLocator {
@@ -127,7 +127,6 @@ impl KneeLocator {
     }
 
     pub fn new(x: Vec<f64>, y: Vec<f64>, s: f64, params: KneeLocatorParams) -> Result<Self> {
-        Self::check_x_y(&x, &y)?;
         Self::parameterized_new(x, y, s, params, false, 7)
     }
 

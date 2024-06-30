@@ -1,4 +1,4 @@
-## kneed-rs
+## kneed
 
 ![build](https://github.com/vihu/kneed/actions/workflows/rust.yml/badge.svg)
 
@@ -19,11 +19,23 @@ let params = KneeLocatorParams::new(
     ValidDirection::Increasing,
     InterpMethod::Interp1d,
 );
+
+// Instantiate KneeLocator
 let kl = KneeLocator::new(x.to_vec(), y.to_vec(), 1.0, params);
 
-// You can then call:
+// After instantiation, you can invoke the following:
+// kl.knee
+// kl.knee_y
+// kl.norm_knee
+// kl.norm_knee_y
 // kl.elbow()
+// kl.norm_elbow()
 // kl.elbow_y()
+// kl.norm_elbow_y()
+// kl.all_elbows()
+// kl.all_norm_elbows()
+// kl.all_elbows_y()
+// kl.all_norm_elbows_y()
 ```
 
 Example from the paper:
