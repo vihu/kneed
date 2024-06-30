@@ -1,13 +1,13 @@
 [package]
 name = "kneed"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/vihu/kneed"
 authors = ["Rahul Garg"]
 description = "Pure rust implementation of Knee-point detection"
 license = "BSD-3-Clause"
 readme = "README.md"
-keywords = ["knee", "kneedle", "knee-point"]
+keywords = ["knee", "kneedle", "knee-point", "kneed"]
 homepage = "https://github.com/vihu/kneed"
 
 [dependencies]
