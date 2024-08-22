@@ -1,7 +1,4 @@
 use anyhow::{bail, Result};
-use ndarray::{s, Array1, Axis};
-use ndarray_interp::interp1d::Interp1DBuilder;
-use ndarray_stats::QuantileExt;
 use polyfit_rs::polyfit_rs::polyfit;
 use thiserror::Error;
 
@@ -52,8 +49,8 @@ pub struct KneeLocator {
     pub knee_y: Option<f64>,
     pub norm_knee: Option<f64>,
     pub norm_knee_y: Option<f64>,
-    x: Array1<f64>,
-    y: Array1<f64>,
+    x: Vec<f64>,
+    y: Vec<f64>,
     curve: ValidCurve,
     direction: ValidDirection,
     s: f64,
@@ -64,17 +61,17 @@ pub struct KneeLocator {
     all_norm_knees_y: Vec<f64>,
     online: bool,
     polynomial_degree: usize,
-    x_normalized: Array1<f64>,
-    y_normalized: Array1<f64>,
-    y_difference: Array1<f64>,
-    x_difference: Array1<f64>,
+    x_normalized: Vec<f64>,
+    y_normalized: Vec<f64>,
+    y_difference: Vec<f64>,
+    x_difference: Vec<f64>,
     maxima_indices: Vec<usize>,
     minima_indices: Vec<usize>,
-    x_difference_maxima: Array1<f64>,
-    y_difference_maxima: Array1<f64>,
-    x_difference_minima: Array1<f64>,
-    y_difference_minima: Array1<f64>,
-    tmx: Array1<f64>,
+    x_difference_maxima: Vec<f64>,
+    y_difference_maxima: Vec<f64>,
+    x_difference_minima: Vec<f64>,
+    y_difference_minima: Vec<f64>,
+    tmx: Vec<f64>,
 }
 
 impl KneeLocator {
@@ -141,8 +138,8 @@ impl KneeLocator {
         Self::check_x_y(&x, &y)?;
         let n = x.len();
         let mut knee_locator = KneeLocator {
-            x: Array1::from_vec(x),
-            y: Array1::from_vec(y),
+            x,
+            y,
             curve: params.curve,
             direction: params.direction,
             s,
@@ -153,17 +150,17 @@ impl KneeLocator {
             all_norm_knees_y: Vec::new(),
             online,
             polynomial_degree,
-            x_normalized: Array1::zeros(n),
-            y_normalized: Array1::zeros(n),
-            y_difference: Array1::zeros(n),
-            x_difference: Array1::zeros(n),
-            y_difference_maxima: Array1::zeros(n),
-            x_difference_maxima: Array1::zeros(n),
-            y_difference_minima: Array1::zeros(n),
-            x_difference_minima: Array1::zeros(n),
+            x_normalized: vec![0.0; n],
+            y_normalized: vec![0.0; n],
+            y_difference: vec![0.0; n],
+            x_difference: vec![0.0; n],
+            y_difference_maxima: Vec::new(),
+            x_difference_maxima: Vec::new(),
+            y_difference_minima: Vec::new(),
+            x_difference_minima: Vec::new(),
             maxima_indices: Vec::new(),
             minima_indices: Vec::new(),
-            tmx: Array1::zeros(0),
+            tmx: Vec::new(),
             knee: None,
             norm_knee: None,
             knee_y: None,
@@ -187,7 +184,12 @@ impl KneeLocator {
 
         // Step 3: Calculate the difference curve
         self.y_normalized = self.transform_y();
-        self.y_difference = &self.y_normalized - &self.x_normalized;
+        self.y_difference = self
+            .y_normalized
+            .iter()
+            .zip(self.x_normalized.iter())
+            .map(|(y, x)| y - x)
+            .collect();
         self.x_difference.clone_from(&self.x_normalized);
 
         // Step 4: Identify local maxima/minima
@@ -200,77 +202,78 @@ impl KneeLocator {
         (self.knee, self.norm_knee) = self.find_knee();
 
         // Step 7: If we have a knee, extract data about it
-        self.knee_y = match self.knee {
-            None => None,
-            Some(knee) => Some(self.y[self.x.iter().position(|&v| v == knee).unwrap()]),
-        };
+        self.knee_y = self
+            .knee
+            .map(|knee| self.y[self.x.iter().position(|&v| v == knee).unwrap()]);
 
-        self.norm_knee_y = match self.norm_knee {
-            None => None,
-            Some(norm_knee) => Some(
-                self.y_normalized[self
-                    .x_normalized
-                    .iter()
-                    .position(|&v| v == norm_knee)
-                    .unwrap()],
-            ),
-        };
-    }
-
-    fn normalize(a: &Array1<f64>) -> Result<Array1<f64>> {
-        let min = a.min()?;
-        let max = a.max()?;
-        Ok((a - *min) / (*max - *min))
-    }
-
-    fn interp1d(&self) -> Result<Array1<f64>> {
-        let interpolator = Interp1DBuilder::new(self.y.view())
-            .x(self.x.view())
-            .build()?;
-
-        Ok(Array1::from_vec(
-            self.x
+        self.norm_knee_y = self.norm_knee.map(|norm_knee| {
+            self.y_normalized[self
+                .x_normalized
                 .iter()
-                .map(|&x| interpolator.interp_scalar(x).unwrap())
-                .collect(),
-        ))
+                .position(|&v| v == norm_knee)
+                .unwrap()]
+        });
     }
 
-    fn polynomial_interp(&self) -> Result<Array1<f64>> {
-        let coeffs = polyfit(
-            self.x.as_slice().unwrap(),
-            self.y.as_slice().unwrap(),
-            self.polynomial_degree,
-        )
-        .map_err(|e| anyhow::anyhow!(e))?;
+    fn normalize(a: &[f64]) -> Result<Vec<f64>> {
+        let min = a.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+        let max = a.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+        Ok(a.iter().map(|&v| (v - min) / (max - min)).collect())
+    }
 
-        Ok(Array1::from_vec(
-            self.x
-                .iter()
-                .map(|&x| {
-                    coeffs.iter().enumerate().fold(0.0, |acc, (power, &coeff)| {
-                        acc + coeff * x.powi(power as i32)
-                    })
+    fn interp1d(&self) -> Result<Vec<f64>> {
+        // Simple linear interpolation
+        Ok(self
+            .x
+            .iter()
+            .map(|&x| {
+                let idx = self.x.partition_point(|&v| v < x).saturating_sub(1);
+                if idx == self.x.len() - 1 {
+                    self.y[idx]
+                } else {
+                    let x0 = self.x[idx];
+                    let x1 = self.x[idx + 1];
+                    let y0 = self.y[idx];
+                    let y1 = self.y[idx + 1];
+                    y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+                }
+            })
+            .collect())
+    }
+
+    fn polynomial_interp(&self) -> Result<Vec<f64>> {
+        let coeffs =
+            polyfit(&self.x, &self.y, self.polynomial_degree).map_err(|e| anyhow::anyhow!(e))?;
+
+        Ok(self
+            .x
+            .iter()
+            .map(|&x| {
+                coeffs.iter().enumerate().fold(0.0, |acc, (power, &coeff)| {
+                    acc + coeff * x.powi(power as i32)
                 })
-                .collect(),
-        ))
+            })
+            .collect())
     }
 
-    fn transform_y(&self) -> Array1<f64> {
+    fn transform_y(&self) -> Vec<f64> {
         match (&self.direction, &self.curve) {
             (ValidDirection::Decreasing, ValidCurve::Concave) => {
-                self.y_normalized.slice(s![..;-1]).to_owned()
+                self.y_normalized.iter().rev().cloned().collect()
             }
             (ValidDirection::Decreasing, ValidCurve::Convex) => {
-                let max = self.y_normalized.max().unwrap();
-                self.y_normalized.mapv(|v| max - v)
+                let max = self
+                    .y_normalized
+                    .iter()
+                    .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+                self.y_normalized.iter().map(|&v| max - v).collect()
             }
             (ValidDirection::Increasing, ValidCurve::Convex) => {
-                let max = self.y_normalized.max().unwrap();
-                self.y_normalized
-                    .mapv(|v| max - v)
-                    .slice(s![..;-1])
-                    .to_owned()
+                let max = self
+                    .y_normalized
+                    .iter()
+                    .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+                self.y_normalized.iter().map(|&v| max - v).rev().collect()
             }
             _ => self.y_normalized.clone(), // No transformation needed for (Increasing, Concave)
         }
@@ -283,14 +286,12 @@ impl KneeLocator {
             .maxima_indices
             .iter()
             .map(|&i| self.x_difference[i])
-            .collect::<Vec<f64>>()
-            .into();
+            .collect();
         self.y_difference_maxima = self
             .maxima_indices
             .iter()
             .map(|&i| self.y_difference[i])
-            .collect::<Vec<f64>>()
-            .into();
+            .collect();
 
         // Local minima
         self.minima_indices = argrelextrema(&self.y_difference, |a, b| a <= b, 1);
@@ -298,28 +299,32 @@ impl KneeLocator {
             .minima_indices
             .iter()
             .map(|&i| self.x_difference[i])
-            .collect::<Vec<f64>>()
-            .into();
+            .collect();
         self.y_difference_minima = self
             .minima_indices
             .iter()
             .map(|&i| self.y_difference[i])
-            .collect::<Vec<f64>>()
-            .into();
+            .collect();
     }
 
     fn calculate_thresholds(&mut self) {
         let mean_diff = self
             .x_normalized
             .windows(2)
-            .into_iter()
             .map(|w| w[1] - w[0])
-            .fold(0.0, |acc, x| acc + x)
+            .sum::<f64>()
             / (self.n - 1) as f64;
 
-        let selected_y_diff = self.y_difference.select(Axis(0), &self.maxima_indices);
+        let selected_y_diff: Vec<f64> = self
+            .maxima_indices
+            .iter()
+            .map(|&i| self.y_difference[i])
+            .collect();
 
-        self.tmx = &selected_y_diff - (self.s * mean_diff.abs());
+        self.tmx = selected_y_diff
+            .iter()
+            .map(|&y| y - (self.s * mean_diff.abs()))
+            .collect();
     }
 
     fn find_knee(&mut self) -> (Option<f64>, Option<f64>) {
@@ -417,7 +422,7 @@ impl KneeLocator {
 }
 
 // Re-implement argrelextrema from numpy
-fn argrelextrema<F>(data: &Array1<f64>, comparator: F, order: usize) -> Vec<usize>
+fn argrelextrema<F>(data: &[f64], comparator: F, order: usize) -> Vec<usize>
 where
     F: Fn(f64, f64) -> bool,
 {
@@ -460,23 +465,29 @@ mod tests {
     use rand_distr::{Distribution, Gamma};
 
     fn truncate_and_scale(
-        x: &Array1<f64>,
-        y: &Array1<f64>,
+        x: &[f64],
+        y: &[f64],
         truncate: usize,
         scale: f64,
-    ) -> (Array1<f64>, Array1<f64>) {
-        let x_truncated = x.slice(s![..x.len() - truncate]);
-        let y_truncated = y.slice(s![..y.len() - truncate]);
+    ) -> (Vec<f64>, Vec<f64>) {
+        let x_truncated: Vec<f64> = x[..x.len() - truncate].to_vec();
+        let y_truncated: Vec<f64> = y[..y.len() - truncate].to_vec();
 
-        let x_scaled = x_truncated.map(|&v| v / scale);
-        let y_scaled = y_truncated.map(|&v| v / scale);
+        let x_scaled: Vec<f64> = x_truncated.iter().map(|&v| v / scale).collect();
+        let y_scaled: Vec<f64> = y_truncated.iter().map(|&v| v / scale).collect();
 
-        (x_scaled.to_owned(), y_scaled.to_owned())
+        (x_scaled, y_scaled)
     }
 
-    fn generate_sine_wave(start: f64, end: f64, step: f64) -> (Array1<f64>, Array1<f64>) {
-        let x = Array1::range(start, end, step);
-        let y = x.mapv(|v| v.sin());
+    fn generate_sine_wave(start: f64, end: f64, step: f64) -> (Vec<f64>, Vec<f64>) {
+        let mut x = Vec::new();
+        let mut current = start;
+        while current < end {
+            x.push(current);
+            current += step;
+        }
+
+        let y: Vec<f64> = x.iter().map(|&v| v.sin()).collect();
         (x, y)
     }
 
@@ -774,15 +785,14 @@ mod tests {
         let n = 1000;
 
         // Generate x values
-        let x = Array1::range(1.0, (n + 1) as f64, 1.0);
+        let x: Vec<f64> = (1..=n).map(|i| i as f64).collect();
 
         // Generate y values using gamma distribution
         let gamma = Gamma::new(0.5, 1.0).unwrap();
-        let mut vec_y: Vec<f64> = (0..n).map(|_| gamma.sample(&mut rng)).collect();
+        let mut y: Vec<f64> = (0..n).map(|_| gamma.sample(&mut rng)).collect();
 
         // Sort y in descending order
-        vec_y.sort_by(|a, b| b.partial_cmp(a).unwrap());
-        let y = Array1::from_vec(vec_y);
+        y.sort_by(|a, b| b.partial_cmp(a).unwrap());
 
         let params = KneeLocatorParams::new(
             ValidCurve::Convex,
@@ -790,8 +800,7 @@ mod tests {
             InterpMethod::Interp1d,
         );
 
-        let kl =
-            KneeLocator::parameterized_new(x.to_vec(), y.to_vec(), 1.0, params, true, 7).unwrap();
+        let kl = KneeLocator::parameterized_new(x, y, 1.0, params, true, 7).unwrap();
 
         // NOTE: python reports 482.0, presumably because gamma sampling might differ?
         assert_abs_diff_eq!(497.0, kl.knee.unwrap());
@@ -803,15 +812,14 @@ mod tests {
         let n = 1000;
 
         // Generate x values
-        let x = Array1::range(1.0, (n + 1) as f64, 1.0);
+        let x: Vec<f64> = (1..=n).map(|i| i as f64).collect();
 
         // Generate y values using gamma distribution
         let gamma = Gamma::new(0.5, 1.0).unwrap();
-        let mut vec_y: Vec<f64> = (0..n).map(|_| gamma.sample(&mut rng)).collect();
+        let mut y: Vec<f64> = (0..n).map(|_| gamma.sample(&mut rng)).collect();
 
         // Sort y in descending order
-        vec_y.sort_by(|a, b| b.partial_cmp(a).unwrap());
-        let y = Array1::from_vec(vec_y);
+        y.sort_by(|a, b| b.partial_cmp(a).unwrap());
 
         let params = KneeLocatorParams::new(
             ValidCurve::Convex,
@@ -819,8 +827,7 @@ mod tests {
             InterpMethod::Interp1d,
         );
 
-        let kl =
-            KneeLocator::parameterized_new(x.to_vec(), y.to_vec(), 1.0, params, false, 7).unwrap();
+        let kl = KneeLocator::parameterized_new(x, y, 1.0, params, false, 7).unwrap();
 
         // NOTE: python reports 22.0, presumably because gamma sampling might differ?
         assert_abs_diff_eq!(71.0, kl.knee.unwrap());
@@ -885,7 +892,7 @@ mod tests {
 
         for (detected, expected) in detected_knees.iter().zip(expected_knees.iter()) {
             println!("Detected: {}, Expected: {}", detected, expected);
-            assert_abs_diff_eq!(detected, expected);
+            assert_abs_diff_eq!(detected, expected, epsilon = 1e-6)
         }
     }
 

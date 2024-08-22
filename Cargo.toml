@@ -12,10 +12,6 @@ homepage = "https://github.com/vihu/kneed"
 
 [dependencies]
 anyhow = "1"
-ndarray = "0"
-ndarray-linalg = { version = "0", features = ["openblas-system"] }
-ndarray-stats = "0"
-ndarray-interp = "0"
 rand = "0"
 rand_distr = "0"
 polyfit-rs = "0"
