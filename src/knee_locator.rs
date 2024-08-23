@@ -91,20 +91,20 @@ impl KneeLocator {
         self.norm_knee_y
     }
 
-    pub fn all_elbows(&self) -> Vec<f64> {
-        self.all_knees.clone()
+    pub fn all_elbows(&self) -> &[f64] {
+        &self.all_knees
     }
 
-    pub fn all_norm_elbows(&self) -> Vec<f64> {
-        self.all_norm_knees.clone()
+    pub fn all_norm_elbows(&self) -> &[f64] {
+        &self.all_norm_knees
     }
 
-    pub fn all_elbows_y(&self) -> Vec<f64> {
-        self.all_knees_y.clone()
+    pub fn all_elbows_y(&self) -> &[f64] {
+        &self.all_knees_y
     }
 
-    pub fn all_norm_elbows_y(&self) -> Vec<f64> {
-        self.all_norm_knees_y.clone()
+    pub fn all_norm_elbows_y(&self) -> &[f64] {
+        &self.all_norm_knees_y
     }
 
     fn check_x_y(x: &[f64], y: &[f64]) -> Result<()> {
@@ -1117,7 +1117,7 @@ mod tests {
             KneeLocator::parameterized_new(x.to_vec(), y.to_vec(), 1.0, params, true, 7).unwrap();
 
         let expected_elbows = [26.0, 31.0, 41.0, 46.0, 53.0];
-        let mut all_elbows = kl.all_elbows();
+        let mut all_elbows = kl.all_elbows().to_vec();
         all_elbows.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
         println!("expected elbows {:?}", expected_elbows);
@@ -1135,7 +1135,7 @@ mod tests {
             0.5168539325842696,
             0.5955056179775281,
         ];
-        let mut all_norm_elbows = kl.all_norm_elbows();
+        let mut all_norm_elbows = kl.all_norm_elbows().to_vec();
         all_norm_elbows.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
         for (detected, expected) in all_norm_elbows.iter().zip(expected_norm_elbows.iter()) {
