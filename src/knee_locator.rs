@@ -459,6 +459,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "testing")]
     use crate::data_generator::DataGenerator;
     use approx::assert_abs_diff_eq;
     use rand::prelude::*;

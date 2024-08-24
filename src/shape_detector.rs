@@ -56,10 +56,9 @@ fn find_shape(x: &[f64], y: &[f64]) -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        data_generator::DataGenerator,
-        knee_locator::{ValidCurve, ValidDirection},
-    };
+    #[cfg(feature = "testing")]
+    use crate::data_generator::DataGenerator;
+    use crate::knee_locator::{ValidCurve, ValidDirection};
 
     #[test]
     fn test_curve_and_direction() {

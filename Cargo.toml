@@ -12,10 +12,13 @@ homepage = "https://github.com/vihu/kneed"
 
 [dependencies]
 anyhow = "1"
-rand = "0"
-rand_distr = "0"
 polyfit-rs = "0"
 thiserror = "1"
 
 [dev-dependencies]
 approx = "0"
+rand = "0"
+rand_distr = "0"
+
+[features]
+testing = []
