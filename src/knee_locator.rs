@@ -1,31 +1,65 @@
+//! # Knee/Elbow Detection using the Kneedle Algorithm
+//!
+//! This module implements the Kneedle algorithm for detecting knees or elbows in curves.
+//! The algorithm is based on the work by Ville Satopää et al. (2011) and is designed to
+//! find points of maximum curvature in discrete datasets.
+//!
+//! ## Algorithm Overview
+//!
+//! The Kneedle algorithm works as follows:
+//! 1. Normalize the input data
+//! 2. Calculate the difference curve between y-values and x-values
+//! 3. Find local maxima in the difference curve
+//! 4. Apply a threshold to detect significant knees
+//!
+//! This implementation supports both online and offline knee detection, various curve types
+//! (convex/concave), and different directions (increasing/decreasing).
+//!
+//! ## Usage
+//!
+//! To use the KneeLocator:
+//! 1. Create a `KneeLocatorParams` instance to specify curve type, direction, and interpolation method
+//! 2. Instantiate a `KneeLocator` with your data and parameters
+//! 3. Access detected knees/elbows using the provided methods
+//!
+//! ## References
+//!
+//! - Finding a "Kneedle" in a Haystack: <https://raghavan.usc.edu/papers/kneedle-simplex11.pdf>
+//! - Python implementation: <https://pypi.org/project/kneed/>
+
 use anyhow::{bail, Result};
 use polyfit_rs::polyfit_rs::polyfit;
 use thiserror::Error;
 
+/// Errors specific to the KneeLocator.
 #[derive(Error, Debug)]
 pub enum KneeLocatorError {
     #[error("parameter error {0}")]
     ParamError(String),
 }
 
+/// Represents the valid curve types for knee detection.
 #[derive(Debug, PartialEq, Clone)]
 pub enum ValidCurve {
     Convex,
     Concave,
 }
 
+/// Represents the valid direction types for knee detection.
 #[derive(Debug, PartialEq, Clone)]
 pub enum ValidDirection {
     Increasing,
     Decreasing,
 }
 
+/// Represents the interpolation methods available for curve fitting.
 #[derive(Debug, PartialEq, Clone)]
 pub enum InterpMethod {
     Interp1d,
     Polynomial,
 }
 
+/// Parameters for configuring the KneeLocator.
 #[derive(Debug, Clone)]
 pub struct KneeLocatorParams {
     curve: ValidCurve,
@@ -34,6 +68,7 @@ pub struct KneeLocatorParams {
 }
 
 impl KneeLocatorParams {
+    /// Creates a new KneeLocatorParams instance.
     pub fn new(curve: ValidCurve, direction: ValidDirection, interp_method: InterpMethod) -> Self {
         Self {
             curve,
@@ -43,6 +78,7 @@ impl KneeLocatorParams {
     }
 }
 
+/// The main struct for detecting knees/elbows in curves.
 #[derive(Debug)]
 pub struct KneeLocator {
     pub knee: Option<f64>,
@@ -75,38 +111,47 @@ pub struct KneeLocator {
 }
 
 impl KneeLocator {
+    /// Returns the detected elbow point.
     pub fn elbow(&self) -> Option<f64> {
         self.knee
     }
 
+    /// Returns the normalized elbow point.
     pub fn norm_elbow(&self) -> Option<f64> {
         self.norm_knee
     }
 
+    /// Returns the y-value at the elbow point.
     pub fn elbow_y(&self) -> Option<f64> {
         self.knee_y
     }
 
+    /// Returns the normalized y-value at the elbow point.
     pub fn norm_elbow_y(&self) -> Option<f64> {
         self.norm_knee_y
     }
 
+    /// Returns all detected elbow points.
     pub fn all_elbows(&self) -> &[f64] {
         &self.all_knees
     }
 
+    /// Returns all normalized elbow points.
     pub fn all_norm_elbows(&self) -> &[f64] {
         &self.all_norm_knees
     }
 
+    /// Returns y-values for all detected elbow points.
     pub fn all_elbows_y(&self) -> &[f64] {
         &self.all_knees_y
     }
 
+    /// Returns normalized y-values for all detected elbow points.
     pub fn all_norm_elbows_y(&self) -> &[f64] {
         &self.all_norm_knees_y
     }
 
+    /// Checks if input x and y series are valid.
     fn check_x_y(x: &[f64], y: &[f64]) -> Result<()> {
         if x.is_empty() || y.is_empty() {
             bail!(KneeLocatorError::ParamError(
@@ -123,10 +168,12 @@ impl KneeLocator {
         Ok(())
     }
 
+    /// Creates a new KneeLocator instance with default parameters.
     pub fn new(x: Vec<f64>, y: Vec<f64>, s: f64, params: KneeLocatorParams) -> Result<Self> {
         Self::parameterized_new(x, y, s, params, false, 7)
     }
 
+    /// Creates a new KneeLocator instance with custom parameters.
     pub fn parameterized_new(
         x: Vec<f64>,
         y: Vec<f64>,
