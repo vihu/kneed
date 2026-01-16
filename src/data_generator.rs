@@ -75,12 +75,12 @@ mod tests {
     fn test_data_generator_feature() {
         // Test that DataGenerator::figure2() works when feature is enabled
         let (x, y) = DataGenerator::figure2();
-        
+
         // Basic invariants
         assert_eq!(x.len(), 10, "x should have 10 elements");
         assert_eq!(y.len(), 10, "y should have 10 elements");
         assert_eq!(x.len(), y.len(), "x and y should have the same length");
-        
+
         // Check that x is non-empty and contains valid numbers
         assert!(!x.is_empty());
         assert!(!y.is_empty());
