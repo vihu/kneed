@@ -8,6 +8,13 @@ The code here aims to be a 1:1 match of [kneed](https://pypi.org/project/kneed/)
 
 ### Usage
 
+To use the `DataGenerator` API for generating test data, enable the `data-generator` feature:
+
+```toml
+[dependencies]
+kneed = { version = "1.0.0", features = ["data-generator"] }
+```
+
 General usage:
 
 ```rust
@@ -38,9 +45,10 @@ let kl = KneeLocator::new(x.to_vec(), y.to_vec(), 1.0, params);
 // kl.all_norm_elbows_y()
 ```
 
-Example from the paper:
+Example from the paper (requires `data-generator` feature):
 
 ```rust
+// This example requires the "data-generator" feature to be enabled
 let (x, y) = DataGenerator::figure2();
 
 let params = KneeLocatorParams::new(
