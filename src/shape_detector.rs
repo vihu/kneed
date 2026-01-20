@@ -94,7 +94,7 @@ pub fn find_shape(x: &[f64], y: &[f64]) -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "testing")]
+    #[cfg(feature = "data-generator")]
     use crate::data_generator::DataGenerator;
     use crate::knee_locator::{ValidCurve, ValidDirection};
 
@@ -165,6 +165,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_find_shape() {
         let (x, y) = DataGenerator::concave_increasing();

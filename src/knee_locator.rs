@@ -594,10 +594,12 @@ where
 mod tests {
     use super::*;
 
-    #[cfg(feature = "testing")]
+    #[cfg(feature = "data-generator")]
     use crate::data_generator::DataGenerator;
     use approx::assert_abs_diff_eq;
+    #[cfg(feature = "data-generator")]
     use rand::prelude::*;
+    #[cfg(feature = "data-generator")]
     use rand_distr::{Distribution, Gamma};
 
     fn truncate_and_scale(
@@ -627,6 +629,7 @@ mod tests {
         (x, y)
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_figure2_interp1d() {
         let (x, y) = DataGenerator::figure2();
@@ -644,6 +647,7 @@ mod tests {
         assert_abs_diff_eq!(1.8965517241379306, kl.knee_y.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_figure2_polynomial() {
         let (x, y) = DataGenerator::figure2();
@@ -661,6 +665,7 @@ mod tests {
         assert_abs_diff_eq!(1.8965517241379306, kl.knee_y.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_noisy_gaussian() {
         let (x, y) = DataGenerator::noisy_gaussian(50.0, 10.0, 1000, 42);
@@ -675,6 +680,7 @@ mod tests {
         assert_abs_diff_eq!(62.25, kl.knee.unwrap(), epsilon = 0.1);
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_increasing_interp1d() {
         let (x, y) = DataGenerator::concave_increasing();
@@ -687,6 +693,7 @@ mod tests {
         assert_abs_diff_eq!(2.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_increasing_polynomial() {
         let (x, y) = DataGenerator::concave_increasing();
@@ -699,6 +706,7 @@ mod tests {
         assert_abs_diff_eq!(2.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_decreasing_interp1d() {
         let (x, y) = DataGenerator::concave_decreasing();
@@ -711,6 +719,7 @@ mod tests {
         assert_abs_diff_eq!(7.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_decreasing_polynomial() {
         let (x, y) = DataGenerator::concave_decreasing();
@@ -723,6 +732,7 @@ mod tests {
         assert_abs_diff_eq!(7.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_increasing_interp1d() {
         let (x, y) = DataGenerator::convex_increasing();
@@ -735,6 +745,7 @@ mod tests {
         assert_abs_diff_eq!(7.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_increasing_polynomial() {
         let (x, y) = DataGenerator::convex_increasing();
@@ -747,6 +758,7 @@ mod tests {
         assert_abs_diff_eq!(7.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_decreasing_interp1d() {
         let (x, y) = DataGenerator::convex_decreasing();
@@ -759,6 +771,7 @@ mod tests {
         assert_abs_diff_eq!(2.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_decreasing_polynomial() {
         let (x, y) = DataGenerator::convex_decreasing();
@@ -771,6 +784,7 @@ mod tests {
         assert_abs_diff_eq!(2.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_increasing_truncated_interp1d() {
         let (x, y) = DataGenerator::concave_increasing();
@@ -786,6 +800,7 @@ mod tests {
         assert_abs_diff_eq!(0.2, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_increasing_truncated_polynomial() {
         let (x, y) = DataGenerator::concave_increasing();
@@ -801,6 +816,7 @@ mod tests {
         assert_abs_diff_eq!(0.2, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_decreasing_truncated_interp1d() {
         let (x, y) = DataGenerator::concave_decreasing();
@@ -816,6 +832,7 @@ mod tests {
         assert_abs_diff_eq!(0.4, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_concave_decreasing_truncated_polynomial() {
         let (x, y) = DataGenerator::concave_decreasing();
@@ -831,6 +848,7 @@ mod tests {
         assert_abs_diff_eq!(0.4, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_increasing_truncated_interp1d() {
         let (x, y) = DataGenerator::convex_increasing();
@@ -846,6 +864,7 @@ mod tests {
         assert_abs_diff_eq!(0.4, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_increasing_truncated_polynomial() {
         let (x, y) = DataGenerator::convex_increasing();
@@ -861,6 +880,7 @@ mod tests {
         assert_abs_diff_eq!(0.4, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_decreasing_truncated_interp1d() {
         let (x, y) = DataGenerator::convex_decreasing();
@@ -876,6 +896,7 @@ mod tests {
         assert_abs_diff_eq!(0.2, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_decreasing_truncated_polynomial() {
         let (x, y) = DataGenerator::convex_decreasing();
@@ -891,6 +912,7 @@ mod tests {
         assert_abs_diff_eq!(0.2, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_decreasing_bumpy_interp1d() {
         let (x, y) = DataGenerator::bumpy();
@@ -903,6 +925,7 @@ mod tests {
         assert_abs_diff_eq!(26.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_convex_decreasing_bumpy_polynomial() {
         let (x, y) = DataGenerator::bumpy();
@@ -915,6 +938,7 @@ mod tests {
         assert_abs_diff_eq!(28.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_gamma_online() {
         let mut rng = StdRng::seed_from_u64(23);
@@ -942,6 +966,7 @@ mod tests {
         assert_abs_diff_eq!(497.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_gamma_offline() {
         let mut rng = StdRng::seed_from_u64(23);
@@ -969,6 +994,7 @@ mod tests {
         assert_abs_diff_eq!(71.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_sensitivity() {
         let seed = 23;
@@ -1070,6 +1096,7 @@ mod tests {
         assert_abs_diff_eq!(8.0, kl2.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_y() {
         let (x, y) = DataGenerator::figure2();
@@ -1241,6 +1268,7 @@ mod tests {
         assert_abs_diff_eq!(73.0, kl.knee.unwrap());
     }
 
+    #[cfg(feature = "data-generator")]
     #[test]
     fn test_all_knees() {
         let (x, y) = DataGenerator::bumpy();

@@ -70,6 +70,24 @@ mod tests {
     use super::*;
     use approx::assert_abs_diff_eq;
 
+    #[cfg(feature = "data-generator")]
+    #[test]
+    fn test_data_generator_feature() {
+        // Test that DataGenerator::figure2() works when feature is enabled
+        let (x, y) = DataGenerator::figure2();
+
+        // Basic invariants
+        assert_eq!(x.len(), 10, "x should have 10 elements");
+        assert_eq!(y.len(), 10, "y should have 10 elements");
+        assert_eq!(x.len(), y.len(), "x and y should have the same length");
+
+        // Check that x is non-empty and contains valid numbers
+        assert!(!x.is_empty());
+        assert!(!y.is_empty());
+        assert!(x.iter().all(|&val| val.is_finite()));
+        assert!(y.iter().all(|&val| val.is_finite()));
+    }
+
     fn assert_vec_abs_diff_eq(vec1: &[f64], vec2: &[f64]) {
         const EPSILON: f64 = 1e-7;
 
