@@ -83,7 +83,6 @@ use kneed::knee_locator::{KneeLocator, KneeLocatorParams, ValidCurve, ValidDirec
 
 // Figure 2 data from the Kneedle paper
 let x: Vec<f64> = (0..10).map(|i| i as f64 / 9.0).collect();
-let y: Vec<f64> = x.iter().map(|&xi| -1.0 / (xi + 0.1) + 5.0).collect();
 Example from the paper (requires `data-generator` feature):
 
 ```rust
