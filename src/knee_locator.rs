@@ -31,6 +31,8 @@ use anyhow::{bail, Result};
 use polyfit_rs::polyfit_rs::polyfit;
 use thiserror::Error;
 
+use crate::shape_detector::find_shape;
+
 /// Errors specific to the KneeLocator.
 #[derive(Error, Debug)]
 pub enum KneeLocatorError {
@@ -171,6 +173,91 @@ impl KneeLocator {
     /// Creates a new KneeLocator instance with default parameters.
     pub fn new(x: Vec<f64>, y: Vec<f64>, s: f64, params: KneeLocatorParams) -> Result<Self> {
         Self::parameterized_new(x, y, s, params, false, 7)
+    }
+
+    /// Creates a new KneeLocator instance with automatic shape detection.
+    ///
+    /// This method analyzes the input data to automatically determine the curve direction
+    /// (increasing/decreasing) and type (convex/concave), eliminating the need to manually
+    /// specify these parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - A vector of x-coordinates
+    /// * `y` - A vector of y-coordinates (must be the same length as `x`)
+    /// * `s` - Sensitivity parameter. A higher value means more sensitivity to detecting knees.
+    ///         Recommended values are between 1.0 and 10.0.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `KneeLocator` instance, or an error if the input is invalid.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use kneed::knee_locator::KneeLocator;
+    ///
+    /// let x = vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
+    /// let y = vec![0.0, 60.0, 80.0, 85.0, 90.0, 95.0, 96.0, 97.0, 98.0, 99.0];
+    ///
+    /// let kl = KneeLocator::auto(x, y, 1.0).unwrap();
+    /// assert!(kl.knee.is_some());
+    /// ```
+    pub fn auto(x: Vec<f64>, y: Vec<f64>, s: f64) -> Result<Self> {
+        Self::auto_with_interp(x, y, s, InterpMethod::Interp1d)
+    }
+
+    /// Creates a new KneeLocator instance with automatic shape detection and a specified
+    /// interpolation method.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - A vector of x-coordinates
+    /// * `y` - A vector of y-coordinates (must be the same length as `x`)
+    /// * `s` - Sensitivity parameter
+    /// * `interp_method` - The interpolation method to use
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `KneeLocator` instance, or an error if the input is invalid.
+    pub fn auto_with_interp(
+        x: Vec<f64>,
+        y: Vec<f64>,
+        s: f64,
+        interp_method: InterpMethod,
+    ) -> Result<Self> {
+        Self::check_x_y(&x, &y)?;
+        let (direction, curve) = find_shape(&x, &y);
+        let params = KneeLocatorParams::new(curve, direction, interp_method);
+        Self::parameterized_new(x, y, s, params, false, 7)
+    }
+
+    /// Creates a new KneeLocator instance with automatic shape detection and full parameter control.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - A vector of x-coordinates
+    /// * `y` - A vector of y-coordinates (must be the same length as `x`)
+    /// * `s` - Sensitivity parameter
+    /// * `interp_method` - The interpolation method to use
+    /// * `online` - If true, detects the last knee; if false, detects the first knee
+    /// * `polynomial_degree` - Degree of polynomial for polynomial interpolation
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `KneeLocator` instance, or an error if the input is invalid.
+    pub fn auto_parameterized(
+        x: Vec<f64>,
+        y: Vec<f64>,
+        s: f64,
+        interp_method: InterpMethod,
+        online: bool,
+        polynomial_degree: usize,
+    ) -> Result<Self> {
+        Self::check_x_y(&x, &y)?;
+        let (direction, curve) = find_shape(&x, &y);
+        let params = KneeLocatorParams::new(curve, direction, interp_method);
+        Self::parameterized_new(x, y, s, params, online, polynomial_degree)
     }
 
     /// Creates a new KneeLocator instance with custom parameters.
@@ -1239,5 +1326,104 @@ mod tests {
         // Test valid input
         let result = KneeLocator::new(vec![1.0, 2.0, 3.0], vec![1.0, 2.0, 3.0], 1.0, params);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_auto_concave_increasing() {
+        let (x, y) = DataGenerator::concave_increasing();
+        let kl = KneeLocator::auto(x.clone(), y.clone(), 1.0).unwrap();
+
+        // Should match the result from manually specifying the correct params
+        let params = KneeLocatorParams::new(
+            ValidCurve::Concave,
+            ValidDirection::Increasing,
+            InterpMethod::Interp1d,
+        );
+        let kl_manual = KneeLocator::new(x, y, 1.0, params).unwrap();
+
+        assert_eq!(kl.knee, kl_manual.knee);
+        assert_abs_diff_eq!(2.0, kl.knee.unwrap());
+    }
+
+    #[test]
+    fn test_auto_concave_decreasing() {
+        let (x, y) = DataGenerator::concave_decreasing();
+        let kl = KneeLocator::auto(x.clone(), y.clone(), 1.0).unwrap();
+
+        let params = KneeLocatorParams::new(
+            ValidCurve::Concave,
+            ValidDirection::Decreasing,
+            InterpMethod::Interp1d,
+        );
+        let kl_manual = KneeLocator::new(x, y, 1.0, params).unwrap();
+
+        assert_eq!(kl.knee, kl_manual.knee);
+        assert_abs_diff_eq!(7.0, kl.knee.unwrap());
+    }
+
+    #[test]
+    fn test_auto_convex_increasing() {
+        let (x, y) = DataGenerator::convex_increasing();
+        let kl = KneeLocator::auto(x.clone(), y.clone(), 1.0).unwrap();
+
+        let params = KneeLocatorParams::new(
+            ValidCurve::Convex,
+            ValidDirection::Increasing,
+            InterpMethod::Interp1d,
+        );
+        let kl_manual = KneeLocator::new(x, y, 1.0, params).unwrap();
+
+        assert_eq!(kl.knee, kl_manual.knee);
+        assert_abs_diff_eq!(7.0, kl.knee.unwrap());
+    }
+
+    #[test]
+    fn test_auto_convex_decreasing() {
+        let (x, y) = DataGenerator::convex_decreasing();
+        let kl = KneeLocator::auto(x.clone(), y.clone(), 1.0).unwrap();
+
+        let params = KneeLocatorParams::new(
+            ValidCurve::Convex,
+            ValidDirection::Decreasing,
+            InterpMethod::Interp1d,
+        );
+        let kl_manual = KneeLocator::new(x, y, 1.0, params).unwrap();
+
+        assert_eq!(kl.knee, kl_manual.knee);
+        assert_abs_diff_eq!(2.0, kl.knee.unwrap());
+    }
+
+    #[test]
+    fn test_auto_bumpy() {
+        let (x, y) = DataGenerator::bumpy();
+        let kl = KneeLocator::auto(x.clone(), y.clone(), 1.0).unwrap();
+
+        let params = KneeLocatorParams::new(
+            ValidCurve::Convex,
+            ValidDirection::Decreasing,
+            InterpMethod::Interp1d,
+        );
+        let kl_manual = KneeLocator::new(x, y, 1.0, params).unwrap();
+
+        assert_eq!(kl.knee, kl_manual.knee);
+        assert_abs_diff_eq!(26.0, kl.knee.unwrap());
+    }
+
+    #[test]
+    fn test_auto_with_polynomial_interp() {
+        let (x, y) = DataGenerator::concave_increasing();
+        let kl = KneeLocator::auto_with_interp(x, y, 1.0, InterpMethod::Polynomial).unwrap();
+        assert_abs_diff_eq!(2.0, kl.knee.unwrap());
+    }
+
+    #[test]
+    fn test_auto_input_validation() {
+        // Test empty vectors
+        let result = KneeLocator::auto(vec![], vec![], 1.0);
+        assert!(result.is_err());
+
+        // Test unequal lengths
+        let result = KneeLocator::auto(vec![1.0, 2.0], vec![1.0, 2.0, 3.0], 1.0);
+        assert!(result.is_err());
     }
 }

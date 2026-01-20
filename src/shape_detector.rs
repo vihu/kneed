@@ -1,11 +1,49 @@
-#![allow(dead_code)]
+//! # Shape Detection for Curves
+//!
+//! This module provides functionality to automatically detect the shape of a curve,
+//! determining both its direction (increasing/decreasing) and curvature (convex/concave).
+//!
+//! This is useful when you want to use the [`KneeLocator`](crate::knee_locator::KneeLocator)
+//! without manually specifying the curve parameters.
 
 use crate::knee_locator::{ValidCurve, ValidDirection};
 
-type Shape = (ValidDirection, ValidCurve);
+/// A tuple representing the detected shape: (direction, curve type).
+pub type Shape = (ValidDirection, ValidCurve);
 
 /// Detect the direction and curve type of the line.
-fn find_shape(x: &[f64], y: &[f64]) -> Shape {
+///
+/// This function analyzes the input data to determine:
+/// - **Direction**: Whether the curve is increasing or decreasing overall
+/// - **Curve type**: Whether the curve is convex or concave
+///
+/// # Arguments
+///
+/// * `x` - A slice of x-coordinates (must be the same length as `y`)
+/// * `y` - A slice of y-coordinates (must be the same length as `x`)
+///
+/// # Returns
+///
+/// A tuple of `(ValidDirection, ValidCurve)` representing the detected shape.
+///
+/// # Panics
+///
+/// Panics if `x` and `y` have different lengths.
+///
+/// # Example
+///
+/// ```
+/// use kneed::shape_detector::find_shape;
+/// use kneed::knee_locator::{ValidDirection, ValidCurve};
+///
+/// let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+/// let y = vec![1.0, 1.5, 1.8, 1.9, 2.0];  // Concave increasing curve
+///
+/// let (direction, curve) = find_shape(&x, &y);
+/// assert_eq!(direction, ValidDirection::Increasing);
+/// assert_eq!(curve, ValidCurve::Concave);
+/// ```
+pub fn find_shape(x: &[f64], y: &[f64]) -> Shape {
     assert_eq!(x.len(), y.len(), "x and y must have the same length");
 
     // Perform polynomial fitting
